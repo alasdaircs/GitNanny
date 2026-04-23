@@ -21,7 +21,9 @@ jobs:
           cache-dependency-path: '**/*.csproj'
 
       - name: Restore
-        run: dotnet restore GitReport.slnx
+        run: |
+          dotnet restore GitReport.slnx
+          dotnet restore GitReport/GitReport.csproj -r win-x64
 
       - name: Build
         run: dotnet build GitReport.slnx --no-restore -c Release
