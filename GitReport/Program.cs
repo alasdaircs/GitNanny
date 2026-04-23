@@ -5,39 +5,40 @@ using GitReport.Email;
 using GitReport.Git;
 using GitReport.Scanning;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 
-var scanRootOption = new Option<string[]?>(
-    "--scan-root",
-    "Override scan roots from config (replaces, not appends)")
+var scanRootOption = new Option<string[]?>("--scan-root")
 {
+    Description = "Override scan roots from config (replaces, not appends)",
     Arity = ArgumentArity.ZeroOrMore,
     AllowMultipleArgumentsPerToken = true
 };
 
-var excludeOption = new Option<string[]?>(
-    "--exclude",
-    "Override exclude patterns for this run (replaces, not appends)")
+var excludeOption = new Option<string[]?>("--exclude")
 {
+    Description = "Override exclude patterns for this run (replaces, not appends)",
     Arity = ArgumentArity.ZeroOrMore,
     AllowMultipleArgumentsPerToken = true
 };
 
-var maxDepthOption = new Option<int?>(
-    "--max-depth",
-    "Override recursion depth");
+var maxDepthOption = new Option<int?>("--max-depth")
+{
+    Description = "Override recursion depth"
+};
 
-var dryRunOption = new Option<bool>(
-    "--dry-run",
-    "Scan and summarise; print HTML to stdout, do not send email");
+var dryRunOption = new Option<bool>("--dry-run")
+{
+    Description = "Scan and summarise; print HTML to stdout, do not send email"
+};
 
-var noAiOption = new Option<bool>(
-    "--no-ai",
-    "Skip Claude API calls; report raw data only");
+var noAiOption = new Option<bool>("--no-ai")
+{
+    Description = "Skip Claude API calls; report raw data only"
+};
 
-var verboseOption = new Option<bool>(
-    "--verbose",
-    "Log each directory entered and each repo found");
+var verboseOption = new Option<bool>("--verbose")
+{
+    Description = "Log each directory entered and each repo found"
+};
 
 var rootCommand = new RootCommand("Git repository status report — scans repos and emails a summary")
 {
@@ -49,14 +50,14 @@ var rootCommand = new RootCommand("Git repository status report — scans repos 
     verboseOption
 };
 
-rootCommand.SetHandler(async (InvocationContext context) =>
+rootCommand.SetAction(async (ParseResult parseResult, CancellationToken ct) =>
 {
-    var cliScanRoots = context.ParseResult.GetValueForOption(scanRootOption);
-    var cliExcludes  = context.ParseResult.GetValueForOption(excludeOption);
-    var cliMaxDepth  = context.ParseResult.GetValueForOption(maxDepthOption);
-    var dryRun       = context.ParseResult.GetValueForOption(dryRunOption);
-    var noAi         = context.ParseResult.GetValueForOption(noAiOption);
-    var verbose      = context.ParseResult.GetValueForOption(verboseOption);
+    var cliScanRoots = parseResult.GetValue(scanRootOption);
+    var cliExcludes  = parseResult.GetValue(excludeOption);
+    var cliMaxDepth  = parseResult.GetValue(maxDepthOption);
+    var dryRun       = parseResult.GetValue(dryRunOption);
+    var noAi         = parseResult.GetValue(noAiOption);
+    var verbose      = parseResult.GetValue(verboseOption);
 
     var options = OptionsBuilder.BuildFromConfig();
 
@@ -73,10 +74,10 @@ rootCommand.SetHandler(async (InvocationContext context) =>
     if (verbose)
         options = options with { Verbose = true };
 
-    context.ExitCode = await RunAsync(options);
+    return await RunAsync(options);
 });
 
-return await rootCommand.InvokeAsync(args);
+return await rootCommand.Parse(args).InvokeAsync();
 
 static async Task<int> RunAsync(AppOptions options)
 {
@@ -102,7 +103,6 @@ static async Task<int> RunAsync(AppOptions options)
         }
     }
 
-    // Phase 1: discover repos
     if (options.Verbose)
         Console.Out.WriteLine("Scanning for repositories...");
 
@@ -111,7 +111,6 @@ static async Task<int> RunAsync(AppOptions options)
     if (options.Verbose)
         Console.Out.WriteLine($"Found {repoPaths.Count} repo(s).");
 
-    // Phase 2: collect Git data
     var statuses = new List<RepoStatus>();
     foreach (var path in repoPaths)
     {
@@ -139,7 +138,6 @@ static async Task<int> RunAsync(AppOptions options)
         return 0;
     }
 
-    // Phase 3: AI summarisation
     IReadOnlyList<RepoStatus> finalStatuses = reposToReport;
     if (!options.NoAi)
     {
@@ -156,7 +154,6 @@ static async Task<int> RunAsync(AppOptions options)
         }
     }
 
-    // Phase 4: build and send (or print) report
     var message = ReportBuilder.Build(finalStatuses, options);
 
     if (options.DryRun)

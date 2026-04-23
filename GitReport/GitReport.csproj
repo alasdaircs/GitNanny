@@ -14,13 +14,12 @@
     <PackageReference Include="MimeKit" Version="*" />
     <PackageReference Include="Microsoft.Graph" Version="*" />
     <PackageReference Include="Azure.Identity" Version="*" />
-    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    <PackageReference Include="System.CommandLine" Version="2.0.7" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="*" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="*" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="*" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="*" />
     <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="*" />
-    <PackageReference Include="System.Text.Json" Version="*" />
   </ItemGroup>
 
   <ItemGroup>
