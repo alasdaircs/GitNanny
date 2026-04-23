@@ -11,8 +11,14 @@ static class GitInspector
         {
             using var repo = new Repository(repoPath);
 
-            var statusOptions = new StatusOptions { IncludeUntracked = true };
-            var status = repo.RetrieveStatus(statusOptions);
+            var statusOptions = new StatusOptions
+            {
+                IncludeUntracked      = true,
+                RecurseUntrackedDirs  = true
+            };
+            var status = repo.RetrieveStatus(statusOptions)
+                             .Where(e => !e.State.HasFlag(FileStatus.Ignored))
+                             .ToList();
 
             var uncommittedFiles   = status.Select(e => e.FilePath).ToArray();
             var uncommittedEntries = status.Select(e => $"[{StatusChar(e.State)}] {e.FilePath}").ToArray();

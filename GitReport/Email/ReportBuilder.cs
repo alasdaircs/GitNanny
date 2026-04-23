@@ -1,4 +1,5 @@
 using GitReport.Scanning;
+using Markdig;
 using MimeKit;
 using System.Text;
 
@@ -6,9 +7,10 @@ namespace GitReport.Email;
 
 static class ReportBuilder
 {
-    // When a log has more than 2×HeadTail entries, show the first and last HeadTail
-    // with an ellipsis in between.
     private const int HeadTail = 5;
+
+    private static readonly MarkdownPipeline MarkdownPipeline =
+        new MarkdownPipelineBuilder().Build();
 
     public static MimeMessage Build(IReadOnlyList<RepoStatus> repos, AppOptions options)
     {
@@ -107,15 +109,13 @@ static class ReportBuilder
 
         if (!noAi && repo.AiSummary is { } summary)
         {
+            var summaryHtml = Markdown.ToHtml(summary, MarkdownPipeline);
             sb.AppendLine(
-                $"""<p style="background:#fffde7;border-left:4px solid #f9a825;padding:8px 12px;margin:0 0 8px 0;border-radius:0 4px 4px 0;font-style:italic;">{Escape(summary)}</p>""");
+                $"""<div style="background:#fffde7;border-left:4px solid #f9a825;padding:8px 12px;margin:0 0 8px 0;border-radius:0 4px 4px 0;font-style:italic;">{summaryHtml}</div>""");
         }
 
         if (repo.UncommittedCount > 0)
-            AppendDetails(sb,
-                $"{repo.UncommittedCount} uncommitted file{(repo.UncommittedCount == 1 ? "" : "s")}",
-                Truncate(repo.UncommittedEntries),
-                mono: true);
+            AppendUncommittedFiles(sb, repo);
 
         if (repo.UnpushedCount > 0)
             AppendDetails(sb,
@@ -131,6 +131,43 @@ static class ReportBuilder
 
         sb.AppendLine("</section>");
     }
+
+    private static void AppendUncommittedFiles(StringBuilder sb, RepoStatus repo)
+    {
+        var label   = $"{repo.UncommittedCount} uncommitted file{(repo.UncommittedCount == 1 ? "" : "s")}";
+        var entries = Truncate(repo.UncommittedEntries);
+
+        sb.AppendLine("""<details style="margin-top:6px;">""");
+        sb.AppendLine(
+            $"""  <summary style="cursor:pointer;list-style:none;padding:5px 10px;""" +
+            $"""background:#f0f0f0;border-radius:4px;font-size:12px;font-weight:600;""" +
+            $"""color:#444;user-select:none;">&#9654; {Escape(label)}</summary>""");
+        sb.AppendLine(
+            """  <div style="margin-top:2px;padding:8px 10px;background:#fafafa;""" +
+            """border:1px solid #e0e0e0;border-top:none;border-radius:0 0 4px 4px;""" +
+            """font-size:12px;font-family:Consolas,'Courier New',monospace;">""");
+
+        foreach (var entry in entries)
+        {
+            var colour = FileEntryColour(entry);
+            sb.AppendLine(
+                $"""    <div style="color:{colour};line-height:1.6;">{Escape(entry)}</div>""");
+        }
+
+        sb.AppendLine("  </div>");
+        sb.AppendLine("</details>");
+    }
+
+    // Entry format is "[X] path/to/file" — colour by status character.
+    private static string FileEntryColour(string entry) =>
+        entry.Length >= 3 && entry[0] == '[' && entry[2] == ']'
+            ? entry[1] switch
+            {
+                'A' or '?' => "#2e7d32",  // green  — added / untracked
+                'D'        => "#c62828",  // red    — deleted
+                _          => "#b45309",  // amber  — modified, renamed, conflicted
+            }
+            : "#555555";  // ellipsis / truncation lines
 
     // <details>/<summary> collapses in Gmail, Apple Mail, and most web clients.
     // In Outlook for Windows it degrades gracefully — content is always visible.
@@ -149,9 +186,10 @@ static class ReportBuilder
         sb.AppendLine(
             $"""  <div style="margin-top:2px;padding:8px 10px;background:#fafafa;""" +
             $"""border:1px solid #e0e0e0;border-top:none;border-radius:0 0 4px 4px;""" +
-            $"""font-size:12px;{fontStyle}white-space:pre;">""");
+            $"""font-size:12px;{fontStyle}">""");
         foreach (var line in lines)
-            sb.AppendLine($"    {Escape(line)}");
+            sb.AppendLine(
+                $"""    <div style="line-height:1.6;">{Escape(line)}</div>""");
         sb.AppendLine("  </div>");
         sb.AppendLine("</details>");
     }

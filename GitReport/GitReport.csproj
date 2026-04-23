@@ -20,6 +20,13 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="*" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="*" />
     <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="*" />
+    <PackageReference Include="Markdig" Version="*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>GitReport.Tests</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 
   <ItemGroup>

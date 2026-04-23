@@ -7,4 +7,5 @@
     <File Path="docs/system-commandline-beta4-to-2.0.7.md" />
   </Folder>
   <Project Path="GitReport/GitReport.csproj" />
+  <Project Path="GitReport.Tests/GitReport.Tests.csproj" />
 </Solution>

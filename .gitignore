@@ -21,3 +21,6 @@ Thumbs.db
 # Secrets — never committed
 appsettings.*.json
 !appsettings.json
+
+# Local developer overrides
+**/Properties/launchSettings.json
