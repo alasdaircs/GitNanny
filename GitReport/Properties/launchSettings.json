@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "GitReport": {
+      "commandName": "Project",
+      "commandLineArgs": "--scan-root \"C:\\Dev\" --scan-root \"C:\\Users\\alasdair\\source\\repos\" --no-ai --verbose"
+    }
+  }
+}

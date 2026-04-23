@@ -6,8 +6,17 @@ static class RepoScanner
 {
     public static IReadOnlyList<string> Discover(AppOptions options)
     {
+        var excludes = new HashSet<string>( options.ExcludePatterns );
+
+        // These overrieds are not optional, they are always excluded.
+        excludes.Add( "$RECYCLE.BIN" );
+        excludes.Add( "System Volume Information" );
+        excludes.Add( ".git" );
+        excludes.Add( ".nuget" );
+        excludes.Add( "node_modules" );
+
         var matcher = new Matcher();
-        foreach (var pattern in options.ExcludePatterns)
+        foreach (var pattern in excludes )
             matcher.AddInclude(pattern);
 
         var repos = new List<string>();
