@@ -6,6 +6,10 @@ namespace GitReport.Email;
 
 static class ReportBuilder
 {
+    // When a log has more than 2×HeadTail entries, show the first and last HeadTail
+    // with an ellipsis in between.
+    private const int HeadTail = 5;
+
     public static MimeMessage Build(IReadOnlyList<RepoStatus> repos, AppOptions options)
     {
         var dirtyRepos = repos
@@ -103,10 +107,63 @@ static class ReportBuilder
         if (!noAi && repo.AiSummary is { } summary)
         {
             sb.AppendLine(
-                $"""<p style="background:#fffde7;border-left:4px solid #f9a825;padding:8px 12px;margin:0;border-radius:0 4px 4px 0;font-style:italic;">{Escape(summary)}</p>""");
+                $"""<p style="background:#fffde7;border-left:4px solid #f9a825;padding:8px 12px;margin:0 0 8px 0;border-radius:0 4px 4px 0;font-style:italic;">{Escape(summary)}</p>""");
         }
 
+        if (repo.UncommittedCount > 0)
+            AppendDetails(sb,
+                $"{repo.UncommittedCount} uncommitted file{(repo.UncommittedCount == 1 ? "" : "s")}",
+                Truncate(repo.UncommittedEntries),
+                mono: true);
+
+        if (repo.UnpushedCount > 0)
+            AppendDetails(sb,
+                $"{repo.UnpushedCount} unpushed commit{(repo.UnpushedCount == 1 ? "" : "s")}",
+                Truncate(repo.UnpushedMessages),
+                mono: true);
+
+        if (repo.UnpulledCount > 0 && repo.UnpulledMessages.Length > 0)
+            AppendDetails(sb,
+                $"{repo.UnpulledCount} unpulled commit{(repo.UnpulledCount == 1 ? "" : "s")} (last fetch)",
+                Truncate(repo.UnpulledMessages),
+                mono: true);
+
         sb.AppendLine("</section>");
+    }
+
+    // <details>/<summary> collapses in Gmail, Apple Mail, and most web clients.
+    // In Outlook for Windows it degrades gracefully — content is always visible.
+    private static void AppendDetails(
+        StringBuilder sb, string label, IEnumerable<string> lines, bool mono)
+    {
+        var fontStyle = mono
+            ? "font-family:Consolas,'Courier New',monospace;"
+            : "";
+
+        sb.AppendLine($"""<details style="margin-top:6px;">""");
+        sb.AppendLine(
+            $"""  <summary style="cursor:pointer;list-style:none;padding:5px 10px;""" +
+            $"""background:#f0f0f0;border-radius:4px;font-size:12px;font-weight:600;""" +
+            $"""color:#444;user-select:none;">&#9654; {Escape(label)}</summary>""");
+        sb.AppendLine(
+            $"""  <div style="margin-top:2px;padding:8px 10px;background:#fafafa;""" +
+            $"""border:1px solid #e0e0e0;border-top:none;border-radius:0 0 4px 4px;""" +
+            $"""font-size:12px;{fontStyle}white-space:pre;">""");
+        foreach (var line in lines)
+            sb.AppendLine($"    {Escape(line)}");
+        sb.AppendLine("  </div>");
+        sb.AppendLine("</details>");
+    }
+
+    private static IEnumerable<string> Truncate(string[] lines)
+    {
+        if (lines.Length <= HeadTail * 2)
+            return lines;
+
+        var omitted = lines.Length - HeadTail * 2;
+        return lines.Take(HeadTail)
+            .Append($"  … {omitted} more …")
+            .Concat(lines.TakeLast(HeadTail));
     }
 
     private static string Escape(string value) =>

@@ -14,8 +14,9 @@ static class GitInspector
             var statusOptions = new StatusOptions { IncludeUntracked = true };
             var status = repo.RetrieveStatus(statusOptions);
 
-            var uncommittedFiles = status.Select(e => e.FilePath).ToArray();
-            var uncommittedCount = uncommittedFiles.Length;
+            var uncommittedFiles   = status.Select(e => e.FilePath).ToArray();
+            var uncommittedEntries = status.Select(e => $"[{StatusChar(e.State)}] {e.FilePath}").ToArray();
+            var uncommittedCount   = uncommittedFiles.Length;
 
             DateTime? oldestChange = null;
             foreach (var filePath in uncommittedFiles)
@@ -32,49 +33,59 @@ static class GitInspector
                 }
             }
 
-            var isLocalOnly = repo.Head.TrackedBranch is null;
+            var isLocalOnly      = repo.Head.TrackedBranch is null;
             var unpushedMessages = Array.Empty<string>();
-            var unpushedCount = 0;
-            int? unpulledCount = null;
+            var unpushedCount    = 0;
+            var unpulledMessages = Array.Empty<string>();
+            int? unpulledCount   = null;
 
             if (!isLocalOnly && repo.Head.TrackedBranch is { } trackedBranch)
             {
                 try
                 {
-                    var commitFilter = new CommitFilter
+                    var unpushedFilter = new CommitFilter
                     {
                         IncludeReachableFrom = repo.Head,
                         ExcludeReachableFrom = trackedBranch,
-                        SortBy = CommitSortStrategies.Topological
+                        SortBy               = CommitSortStrategies.Topological
                     };
-                    var unpushed = repo.Commits.QueryBy(commitFilter).ToList();
+                    var unpushed  = repo.Commits.QueryBy(unpushedFilter).ToList();
                     unpushedCount = unpushed.Count;
-                    unpushedMessages = unpushed
-                        .Select(c => c.MessageShort ?? "")
-                        .ToArray();
+                    unpushedMessages = unpushed.Select(FormatCommit).ToArray();
+
+                    var unpulledFilter = new CommitFilter
+                    {
+                        IncludeReachableFrom = trackedBranch,
+                        ExcludeReachableFrom = repo.Head,
+                        SortBy               = CommitSortStrategies.Topological
+                    };
+                    var unpulled  = repo.Commits.QueryBy(unpulledFilter).ToList();
+                    unpulledCount = unpulled.Count;
+                    unpulledMessages = unpulled.Select(FormatCommit).ToArray();
                 }
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine(
-                        $"Warning: Could not determine unpushed commits for {repoPath}: {ex.Message}");
+                        $"Warning: Could not determine commit divergence for {repoPath}: {ex.Message}");
+                    unpulledCount = repo.Head.TrackingDetails.BehindBy;
                 }
-
-                unpulledCount = repo.Head.TrackingDetails.BehindBy;
             }
 
             return new RepoStatus
             {
-                RepoPath         = repoPath,
-                RepoName         = Path.GetFileName(repoPath),
-                BranchName       = repo.Head.FriendlyName,
-                IsLocalOnly      = isLocalOnly,
-                UncommittedCount = uncommittedCount,
-                UncommittedFiles = uncommittedFiles,
-                OldestChangeUtc  = oldestChange,
-                UnpushedCount    = unpushedCount,
-                UnpushedMessages = unpushedMessages,
-                UnpulledCount    = unpulledCount,
-                AiSummary        = null
+                RepoPath           = repoPath,
+                RepoName           = Path.GetFileName(repoPath),
+                BranchName         = repo.Head.FriendlyName,
+                IsLocalOnly        = isLocalOnly,
+                UncommittedCount   = uncommittedCount,
+                UncommittedFiles   = uncommittedFiles,
+                UncommittedEntries = uncommittedEntries,
+                OldestChangeUtc    = oldestChange,
+                UnpushedCount      = unpushedCount,
+                UnpushedMessages   = unpushedMessages,
+                UnpulledCount      = unpulledCount,
+                UnpulledMessages   = unpulledMessages,
+                AiSummary          = null
             };
         }
         catch (Exception ex)
@@ -83,4 +94,19 @@ static class GitInspector
             return null;
         }
     }
+
+    private static string FormatCommit(Commit c) =>
+        $"{c.Author.When:yyyy-MM-dd}  {c.Sha[..7]}  {c.MessageShort}";
+
+    private static string StatusChar(FileStatus state) => state switch
+    {
+        _ when state.HasFlag(FileStatus.Conflicted)           => "!",
+        _ when state.HasFlag(FileStatus.NewInIndex)           => "A",
+        _ when state.HasFlag(FileStatus.DeletedFromIndex)
+             | state.HasFlag(FileStatus.DeletedFromWorkdir)   => "D",
+        _ when state.HasFlag(FileStatus.RenamedInIndex)
+             | state.HasFlag(FileStatus.RenamedInWorkdir)     => "R",
+        _ when state.HasFlag(FileStatus.NewInWorkdir)         => "?",
+        _                                                      => "M",
+    };
 }
