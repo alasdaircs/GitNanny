@@ -16,9 +16,10 @@ static class ReportBuilder
             .Where(r => r.UncommittedCount > 0 || r.UnpushedCount > 0)
             .ToList();
 
+        var host = Environment.MachineName;
         var subject = dirtyRepos.Count > 0
-            ? $"Git report — {dirtyRepos.Count} repo{(dirtyRepos.Count == 1 ? "" : "s")} need attention"
-            : "Git report — all repos clean";
+            ? $"Git report [{host}] — {dirtyRepos.Count} repo{(dirtyRepos.Count == 1 ? "" : "s")} need attention"
+            : $"Git report [{host}] — all repos clean";
 
         var html = BuildHtml(dirtyRepos, repos.Count, options);
 
