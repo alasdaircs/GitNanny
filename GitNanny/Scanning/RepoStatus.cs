@@ -16,5 +16,12 @@ record RepoStatus
     public string[]  UnpushedMessages    { get; init; } = [];  // "yyyy-MM-dd hash7 message"
     public int?      UnpulledCount       { get; init; }
     public string[]  UnpulledMessages    { get; init; } = [];  // "yyyy-MM-dd hash7 message"
-    public string?   AiSummary           { get; init; }
+    public string?                             UncommittedDiff   { get; init; }  // truncated unified diff for AI prompt
+    public IReadOnlyDictionary<string, string> UntrackedSnippets { get; init; } = new Dictionary<string, string>();  // path → first ~500 chars
+    public IReadOnlyList<SubmoduleInfo>        Submodules        { get; init; } = [];
+    public string?                             AiSummary         { get; init; }
+
+    public bool HasDirtyState =>
+        UncommittedCount > 0 || UnpushedCount > 0 ||
+        Submodules.Any(s => s.Status?.HasDirtyState == true);
 }

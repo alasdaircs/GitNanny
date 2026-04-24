@@ -1,3 +1,4 @@
+using System.Text;
 using GitNanny.Scanning;
 using LibGit2Sharp;
 
@@ -5,7 +6,7 @@ namespace GitNanny.Git;
 
 static class GitInspector
 {
-    public static RepoStatus? Inspect(string repoPath)
+    public static RepoStatus? Inspect(string repoPath, int depth = 0)
     {
         try
         {
@@ -77,6 +78,56 @@ static class GitInspector
                 }
             }
 
+            string? uncommittedDiff = null;
+            if (repo.Head.Tip is { } tip && uncommittedCount > 0)
+            {
+                try
+                {
+                    var patch = repo.Diff.Compare<Patch>(
+                        tip.Tree,
+                        DiffTargets.Index | DiffTargets.WorkingDirectory);
+
+                    if (patch.LinesAdded + patch.LinesDeleted > 0)
+                    {
+                        const int maxDiffChars = 4000;
+                        var content = patch.Content;
+                        uncommittedDiff = content.Length > maxDiffChars
+                            ? content[..maxDiffChars] + "\n[diff truncated]"
+                            : content;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine(
+                        $"Warning: Could not generate diff for {repoPath}: {ex.Message}");
+                }
+            }
+
+            var submodules = depth < 5
+                ? InspectSubmodules(repo, repoPath, depth)
+                : (IReadOnlyList<SubmoduleInfo>)[];
+
+            var untrackedSnippets = new Dictionary<string, string>();
+            foreach (var entry in status.Where(e => e.State.HasFlag(FileStatus.NewInWorkdir)).Take(5))
+            {
+                var absPath = Path.Combine(
+                    repoPath,
+                    entry.FilePath.Replace('/', Path.DirectorySeparatorChar));
+
+                if (!File.Exists(absPath)) continue;
+                try
+                {
+                    const int peekBytes = 512;
+                    var buffer = new byte[peekBytes];
+                    using var fs = File.OpenRead(absPath);
+                    var bytesRead = fs.Read(buffer, 0, peekBytes);
+                    var slice = buffer.AsSpan(0, bytesRead);
+                    if (slice.IndexOf((byte)0) >= 0) continue;  // binary file
+                    untrackedSnippets[entry.FilePath] = Encoding.UTF8.GetString(slice);
+                }
+                catch { /* skip unreadable files silently */ }
+            }
+
             return new RepoStatus
             {
                 RepoPath           = repoPath,
@@ -88,6 +139,9 @@ static class GitInspector
                 UncommittedCount   = uncommittedCount,
                 UncommittedFiles   = uncommittedFiles,
                 UncommittedEntries = uncommittedEntries,
+                UncommittedDiff    = uncommittedDiff,
+                UntrackedSnippets  = untrackedSnippets,
+                Submodules         = submodules,
                 OldestChangeUtc    = oldestChange,
                 UnpushedCount      = unpushedCount,
                 UnpushedMessages   = unpushedMessages,
@@ -101,6 +155,37 @@ static class GitInspector
             Console.Error.WriteLine($"Warning: Failed to inspect {repoPath}: {ex.Message}");
             return null;
         }
+    }
+
+    private static IReadOnlyList<SubmoduleInfo> InspectSubmodules(
+        Repository repo, string repoPath, int depth)
+    {
+        var result = new List<SubmoduleInfo>();
+
+        foreach (var sub in repo.Submodules)
+        {
+            var subPath = Path.Combine(
+                repoPath,
+                sub.Path.Replace('/', Path.DirectorySeparatorChar));
+
+            var isInit = Directory.Exists(subPath) && Repository.IsValid(subPath);
+
+            RepoStatus? status = null;
+            if (isInit)
+            {
+                status = Inspect(subPath, depth + 1);
+            }
+
+            result.Add(new SubmoduleInfo
+            {
+                Name          = sub.Name,
+                RelativePath  = sub.Path,
+                IsInitialized = isInit,
+                Status        = status
+            });
+        }
+
+        return result;
     }
 
     private static string FormatCommit(Commit c) =>
