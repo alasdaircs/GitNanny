@@ -11,8 +11,8 @@ public class ReportBuilderTests
 
     private static AppOptions Opts(bool noAi = true) => new()
     {
-        RecipientAddress = "test@example.com",
-        NoAi             = noAi
+        RecipientAddresses = ["test@example.com"],
+        NoAi               = noAi
     };
 
     private static RepoStatus Clean(string name = "Repo") => new()
@@ -178,5 +178,63 @@ public class ReportBuilderTests
 
         Assert.DoesNotContain("<gen>",  msg.HtmlBody);
         Assert.Contains("&lt;gen&gt;", msg.HtmlBody);
+    }
+
+    // ── path and git user ───────────────────────────────────────────────────
+
+    [Fact]
+    public void RepoPath_RenderedAsFileLink()
+    {
+        var msg = ReportBuilder.Build([Dirty()], Opts());
+
+        Assert.Contains("file:///",       msg.HtmlBody);
+        Assert.Contains(@"C:\Repos\Repo", msg.HtmlBody);
+    }
+
+    [Fact]
+    public void GitUser_NameAndEmail_RenderedTogether()
+    {
+        var repo = Dirty() with { GitUserName = "Alice", GitUserEmail = "alice@example.com" };
+        var msg  = ReportBuilder.Build([repo], Opts());
+
+        Assert.Contains("Alice &lt;alice@example.com&gt;", msg.HtmlBody);
+    }
+
+    [Fact]
+    public void GitUser_EmailOnly_RenderedWithoutAngleBrackets()
+    {
+        var repo = Dirty() with { GitUserName = null, GitUserEmail = "bob@example.com" };
+        var msg  = ReportBuilder.Build([repo], Opts());
+
+        Assert.Contains("bob@example.com", msg.HtmlBody);
+        Assert.DoesNotContain("&lt;bob",   msg.HtmlBody);
+    }
+
+    [Fact]
+    public void GitUser_Neither_SubtitleOmitsUserPart()
+    {
+        var repo = Dirty() with { GitUserName = null, GitUserEmail = null };
+        var msg  = ReportBuilder.Build([repo], Opts());
+
+        Assert.DoesNotContain("·", msg.HtmlBody);
+    }
+
+    // ── multiple recipients ─────────────────────────────────────────────────
+
+    [Fact]
+    public void MultipleRecipients_AllAddedToMessage()
+    {
+        var opts = new AppOptions
+        {
+            RecipientAddresses = ["a@example.com", "b@example.com", "c@example.com"],
+            NoAi = true
+        };
+        var msg = ReportBuilder.Build([Dirty()], opts);
+
+        var addresses = msg.To.OfType<MailboxAddress>().Select(m => m.Address).ToList();
+        Assert.Equal(3, addresses.Count);
+        Assert.Contains("a@example.com", addresses);
+        Assert.Contains("b@example.com", addresses);
+        Assert.Contains("c@example.com", addresses);
     }
 }

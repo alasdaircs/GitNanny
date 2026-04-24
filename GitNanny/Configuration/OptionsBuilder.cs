@@ -1,4 +1,3 @@
-using System.Net.NetworkInformation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 
@@ -29,8 +28,8 @@ static class OptionsBuilder
                                  ?? ["bin", "obj", "node_modules", ".git"],
             MaxDepth         = config.GetValue<int>("MaxDepth", 5),
             SkipCleanRepos   = config.GetValue<bool>("SkipCleanRepos", true),
-            AzureClientId    = config.GetValue<string>("AzureClientId") ?? "",
-            RecipientAddress = config.GetValue<string>("RecipientAddress") ?? "",
+            AzureClientId      = config.GetValue<string>("AzureClientId") ?? "",
+            RecipientAddresses = config.GetSection("RecipientAddresses").Get<string[]>() ?? [],
         };
     }
 }

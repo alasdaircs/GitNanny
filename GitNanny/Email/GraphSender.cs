@@ -18,28 +18,22 @@ static class GraphSender
         var credential  = await BuildCredentialAsync(clientId);
         var graphClient = new GraphServiceClient(credential, ["Mail.Send"]);
 
-        var toAddress = mimeMessage.To
+        var toRecipients = mimeMessage.To
             .OfType<MailboxAddress>()
-            .Select(m => m.Address)
-            .First();
+            .Select(m => new Recipient { EmailAddress = new EmailAddress { Address = m.Address } })
+            .ToList();
 
         var sendMailBody = new SendMailPostRequestBody
         {
             Message = new Message
             {
-                Subject = mimeMessage.Subject,
-                Body    = new ItemBody
+                Subject      = mimeMessage.Subject,
+                Body         = new ItemBody
                 {
                     ContentType = BodyType.Html,
                     Content     = mimeMessage.HtmlBody ?? ""
                 },
-                ToRecipients =
-                [
-                    new Recipient
-                    {
-                        EmailAddress = new EmailAddress { Address = toAddress }
-                    }
-                ]
+                ToRecipients = toRecipients
             },
             SaveToSentItems = false
         };

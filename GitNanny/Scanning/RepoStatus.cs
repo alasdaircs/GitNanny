@@ -5,6 +5,8 @@ record RepoStatus
     public string    RepoPath            { get; init; } = "";
     public string    RepoName            { get; init; } = "";
     public string    BranchName          { get; init; } = "";
+    public string?   GitUserName         { get; init; }
+    public string?   GitUserEmail        { get; init; }
     public bool      IsLocalOnly         { get; init; }
     public int       UncommittedCount    { get; init; }
     public string[]  UncommittedFiles    { get; init; } = [];  // raw paths, used for AI prompt

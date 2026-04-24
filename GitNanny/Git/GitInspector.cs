@@ -82,6 +82,8 @@ static class GitInspector
                 RepoPath           = repoPath,
                 RepoName           = Path.GetFileName(repoPath),
                 BranchName         = repo.Head.FriendlyName,
+                GitUserName        = repo.Config.Get<string>("user.name")?.Value,
+                GitUserEmail       = repo.Config.Get<string>("user.email")?.Value,
                 IsLocalOnly        = isLocalOnly,
                 UncommittedCount   = uncommittedCount,
                 UncommittedFiles   = uncommittedFiles,

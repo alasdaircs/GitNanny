@@ -29,8 +29,8 @@ static class ReportBuilder
 
         var message = new MimeMessage();
         message.Subject = subject;
-        if (!string.IsNullOrWhiteSpace(options.RecipientAddress))
-            message.To.Add(MailboxAddress.Parse(options.RecipientAddress));
+        foreach (var addr in options.RecipientAddresses.Where(a => !string.IsNullOrWhiteSpace(a)))
+            message.To.Add(MailboxAddress.Parse(addr));
         message.Body = bodyBuilder.ToMessageBody();
 
         return message;
@@ -81,9 +81,16 @@ static class ReportBuilder
             : "";
 
         sb.AppendLine(
-            $"<h2 style=\"font-size:16px;margin:0 0 8px 0;\">{Escape(repo.RepoName)}" +
+            $"<h2 style=\"font-size:16px;margin:0 0 4px 0;\">{Escape(repo.RepoName)}" +
             $"{localBadge}" +
             $" <span style=\"font-weight:normal;color:#666;font-size:13px;\">({Escape(repo.BranchName)})</span></h2>");
+
+        var fileUri  = new Uri(repo.RepoPath).AbsoluteUri;
+        var userPart = FormatGitUser(repo.GitUserName, repo.GitUserEmail);
+        var subtitle = $"""<a href="{fileUri}" style="color:#1565c0;text-decoration:none;font-family:Consolas,'Courier New',monospace;">{Escape(repo.RepoPath)}</a>""";
+        if (userPart is not null)
+            subtitle += $""" &nbsp;·&nbsp; <span style="color:#555;">{Escape(userPart)}</span>""";
+        sb.AppendLine($"""<p style="margin:0 0 10px 0;font-size:12px;">{subtitle}</p>""");
 
         sb.AppendLine("""<table style="border-collapse:collapse;width:100%;margin-bottom:10px;">""");
         sb.AppendLine("""<tr style="background:#f5f5f5;">""");
@@ -204,6 +211,15 @@ static class ReportBuilder
             .Append($"  … {omitted} more …")
             .Concat(lines.TakeLast(HeadTail));
     }
+
+    private static string? FormatGitUser(string? name, string? email) =>
+        (name, email) switch
+        {
+            (null, null)   => null,
+            (null, var e)  => e,
+            (var n, null)  => n,
+            (var n, var e) => $"{n} <{e}>"
+        };
 
     private static string Escape(string value) =>
         value

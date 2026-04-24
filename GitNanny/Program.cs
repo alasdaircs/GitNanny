@@ -40,6 +40,13 @@ var verboseOption = new Option<bool>("--verbose")
     Description = "Log each directory entered and each repo found"
 };
 
+var recipientOption = new Option<string[]?>("--recipient")
+{
+    Description = "Override recipient addresses (repeatable; replaces config value)",
+    Arity = ArgumentArity.ZeroOrMore,
+    AllowMultipleArgumentsPerToken = true
+};
+
 var rootCommand = new RootCommand("Git repository status report — scans repos and emails a summary")
 {
     scanRootOption,
@@ -47,17 +54,19 @@ var rootCommand = new RootCommand("Git repository status report — scans repos 
     maxDepthOption,
     dryRunOption,
     noAiOption,
-    verboseOption
+    verboseOption,
+    recipientOption
 };
 
 rootCommand.SetAction(async (ParseResult parseResult, CancellationToken ct) =>
 {
-    var cliScanRoots = parseResult.GetValue(scanRootOption);
-    var cliExcludes  = parseResult.GetValue(excludeOption);
-    var cliMaxDepth  = parseResult.GetValue(maxDepthOption);
-    var dryRun       = parseResult.GetValue(dryRunOption);
-    var noAi         = parseResult.GetValue(noAiOption);
-    var verbose      = parseResult.GetValue(verboseOption);
+    var cliScanRoots  = parseResult.GetValue(scanRootOption);
+    var cliExcludes   = parseResult.GetValue(excludeOption);
+    var cliMaxDepth   = parseResult.GetValue(maxDepthOption);
+    var dryRun        = parseResult.GetValue(dryRunOption);
+    var noAi          = parseResult.GetValue(noAiOption);
+    var verbose       = parseResult.GetValue(verboseOption);
+    var cliRecipients = parseResult.GetValue(recipientOption);
 
     var options = OptionsBuilder.BuildFromConfig();
 
@@ -73,6 +82,8 @@ rootCommand.SetAction(async (ParseResult parseResult, CancellationToken ct) =>
         options = options with { NoAi = true };
     if (verbose)
         options = options with { Verbose = true };
+    if (cliRecipients?.Length > 0)
+        options = options with { RecipientAddresses = cliRecipients };
 
     return await RunAsync(options);
 });
@@ -96,9 +107,9 @@ static async Task<int> RunAsync(AppOptions options)
             return 1;
         }
 
-        if (string.IsNullOrWhiteSpace(options.RecipientAddress))
+        if (options.RecipientAddresses.Length == 0)
         {
-            Console.Error.WriteLine("Error: RecipientAddress must be configured in appsettings.json.");
+            Console.Error.WriteLine("Error: RecipientAddresses must be configured in appsettings.json or via --recipient.");
             return 1;
         }
     }

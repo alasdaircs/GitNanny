@@ -36,16 +36,30 @@
   </ItemGroup>
 
   <!--
+    Tells Visual Studio's fast up-to-date check about the config file so that
+    changing it in the solution root causes VS to trigger a build (rather than
+    skipping it as "up to date"). Only declared when the file actually exists
+    so CI and fresh checkouts are unaffected.
+  -->
+  <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\..\config\appsettings.json')">
+    <UpToDateCheckInput  Include="$(MSBuildProjectDirectory)\..\config\appsettings.json" />
+    <UpToDateCheckOutput Include="$(BaseOutputPath)$(Configuration)\config\appsettings.json" />
+  </ItemGroup>
+
+  <!--
     Copies config\appsettings.json from the solution root to bin\{Configuration}\config\
     so the app can find it one level above the TFM output folder at runtime.
-    The Condition makes this a no-op on CI, where the file does not exist.
+    Inputs/Outputs lets MSBuild skip the copy on incremental builds when the
+    output is already up to date.
   -->
   <Target Name="CopyLocalConfig" AfterTargets="Build"
+          Inputs="$(MSBuildProjectDirectory)\..\config\appsettings.json"
+          Outputs="$(BaseOutputPath)$(Configuration)\config\appsettings.json"
           Condition="Exists('$(MSBuildProjectDirectory)\..\config\appsettings.json')">
     <MakeDir Directories="$(BaseOutputPath)$(Configuration)\config\" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\..\config\appsettings.json"
           DestinationFolder="$(BaseOutputPath)$(Configuration)\config\"
-          SkipUnchangedFiles="true" />
+          SkipUnchangedFiles="false" />
   </Target>
 
 </Project>
