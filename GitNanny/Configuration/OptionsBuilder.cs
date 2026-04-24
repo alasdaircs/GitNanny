@@ -1,4 +1,6 @@
+using System.Net.NetworkInformation;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.FileProviders;
 
 namespace GitNanny.Configuration;
 
@@ -6,10 +8,17 @@ static class OptionsBuilder
 {
     public static AppOptions BuildFromConfig()
     {
+        var siblingConfigFileProvider = new PhysicalFileProvider(
+            Path.Combine(
+                AppContext.BaseDirectory,
+                "..",
+                "config"
+            )
+        );
         var config = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile( "appsettings.json", optional: true )
-            .AddJsonFile( "..\\config\\appsettings.json", optional: true )
+            .AddJsonFile( siblingConfigFileProvider, "appsettings.json", true, false )
             .AddEnvironmentVariables()
             .Build();
 
