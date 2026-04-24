@@ -139,7 +139,7 @@ static async Task<int> RunAsync(AppOptions options)
     }
 
     var reposToReport = options.SkipCleanRepos
-        ? statuses.Where(r => r.UncommittedCount > 0 || r.UnpushedCount > 0).ToList()
+        ? statuses.Where(r => r.HasDirtyState).ToList()
         : statuses;
 
     if (reposToReport.Count == 0 && options.SkipCleanRepos)

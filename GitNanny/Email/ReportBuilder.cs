@@ -15,7 +15,7 @@ static class ReportBuilder
     public static MimeMessage Build(IReadOnlyList<RepoStatus> repos, AppOptions options)
     {
         var dirtyRepos = repos
-            .Where(r => r.UncommittedCount > 0 || r.UnpushedCount > 0)
+            .Where(r => r.HasDirtyState)
             .ToList();
 
         var host = Environment.MachineName;
@@ -65,23 +65,27 @@ static class ReportBuilder
         else
         {
             foreach (var repo in dirtyRepos)
-                AppendRepoSection(sb, repo, options.NoAi);
+                AppendRepoSection(sb, repo, options.NoAi, depth: 0);
         }
 
         sb.AppendLine("</body></html>");
         return sb.ToString();
     }
 
-    private static void AppendRepoSection(StringBuilder sb, RepoStatus repo, bool noAi)
+    private static void AppendRepoSection(StringBuilder sb, RepoStatus repo, bool noAi, int depth)
     {
-        sb.AppendLine("""<section style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:16px;margin-bottom:16px;">""");
+        var (sectionStyle, headingSize) = depth == 0
+            ? ("background:#fff;border:1px solid #ddd;border-radius:6px;padding:16px;margin-bottom:16px;", "16px")
+            : ($"background:#fafafa;border:1px solid #e0e0e0;border-left:3px solid {(repo.HasDirtyState ? "#f9a825" : "#4caf50")};border-radius:0 4px 4px 0;padding:12px;margin-bottom:10px;", "14px");
+
+        sb.AppendLine($"""<section style="{sectionStyle}">""");
 
         var localBadge = repo.IsLocalOnly
             ? " <span style=\"background:#e3f2fd;color:#1565c0;border-radius:4px;padding:2px 6px;font-size:12px;font-weight:600;\">LOCAL ONLY</span>"
             : "";
 
         sb.AppendLine(
-            $"<h2 style=\"font-size:16px;margin:0 0 4px 0;\">{Escape(repo.RepoName)}" +
+            $"<h2 style=\"font-size:{headingSize};margin:0 0 4px 0;\">{Escape(repo.RepoName)}" +
             $"{localBadge}" +
             $" <span style=\"font-weight:normal;color:#666;font-size:13px;\">({Escape(repo.BranchName)})</span></h2>");
 
@@ -136,7 +140,39 @@ static class ReportBuilder
                 Truncate(repo.UnpulledMessages),
                 mono: true);
 
+        if (repo.Submodules.Count > 0)
+            AppendSubmodules(sb, repo.Submodules, noAi, childDepth: depth + 1);
+
         sb.AppendLine("</section>");
+    }
+
+    private static void AppendSubmodules(
+        StringBuilder sb, IReadOnlyList<SubmoduleInfo> submodules, bool noAi, int childDepth)
+    {
+        sb.AppendLine(
+            """<div style="margin-top:12px;border-top:1px solid #eee;padding-top:10px;">""");
+        sb.AppendLine(
+            """<div style="font-size:12px;font-weight:600;color:#555;text-transform:uppercase;""" +
+            """letter-spacing:0.5px;margin-bottom:8px;">Submodules</div>""");
+
+        foreach (var sub in submodules)
+        {
+            if (sub.IsInitialized && sub.Status is { } status)
+            {
+                AppendRepoSection(sb, status, noAi, childDepth);
+            }
+            else
+            {
+                var label = sub.IsInitialized ? "error reading" : "not initialised";
+                sb.AppendLine(
+                    $"""<div style="border-left:3px solid #aaa;padding:6px 10px;margin-bottom:6px;""" +
+                    $"""background:#fafafa;border-radius:0 4px 4px 0;font-size:13px;">""" +
+                    $"""<strong>{Escape(sub.Name)}</strong> """ +
+                    $"""<span style="color:#aaa;font-style:italic;">{label}</span></div>""");
+            }
+        }
+
+        sb.AppendLine("</div>");
     }
 
     private static void AppendUncommittedFiles(StringBuilder sb, RepoStatus repo)

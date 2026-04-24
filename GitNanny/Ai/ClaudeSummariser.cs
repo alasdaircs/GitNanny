@@ -8,7 +8,7 @@ static class ClaudeSummariser
 {
     private const string ApiUrl   = "https://api.anthropic.com/v1/messages";
     private const string Model    = "claude-haiku-4-5-20251001";
-    private const int    MaxTokens = 150;
+    private const int    MaxTokens = 250;
 
     public static async Task<IReadOnlyList<RepoStatus>> SummariseAsync(
         IReadOnlyList<RepoStatus> repos,
@@ -16,20 +16,29 @@ static class ClaudeSummariser
         string apiKey)
     {
         var results = new List<RepoStatus>(repos.Count);
-
         foreach (var repo in repos)
-        {
-            if (repo.UncommittedCount == 0 && repo.UnpushedCount == 0)
-            {
-                results.Add(repo);
-                continue;
-            }
+            results.Add(await SummariseRepoAsync(repo, httpClient, apiKey));
+        return results;
+    }
 
-            var summary = await CallApiAsync(repo, httpClient, apiKey);
-            results.Add(repo with { AiSummary = summary });
+    private static async Task<RepoStatus> SummariseRepoAsync(
+        RepoStatus repo, HttpClient httpClient, string apiKey)
+    {
+        // Recurse into submodules first (sequential, same as top level)
+        var updatedSubmodules = new List<SubmoduleInfo>(repo.Submodules.Count);
+        foreach (var sub in repo.Submodules)
+        {
+            if (sub.Status is { } subStatus)
+                updatedSubmodules.Add(sub with { Status = await SummariseRepoAsync(subStatus, httpClient, apiKey) });
+            else
+                updatedSubmodules.Add(sub);
         }
 
-        return results;
+        var summary = (repo.UncommittedCount > 0 || repo.UnpushedCount > 0)
+            ? await CallApiAsync(repo, httpClient, apiKey)
+            : null;
+
+        return repo with { Submodules = updatedSubmodules, AiSummary = summary };
     }
 
     private static async Task<string?> CallApiAsync(
@@ -37,26 +46,55 @@ static class ClaudeSummariser
     {
         try
         {
-            var fileList = string.Join(", ",
-                repo.UncommittedFiles.Take(20));
+            var sb = new StringBuilder();
+            sb.AppendLine($"Repository: {repo.RepoName} (branch: {repo.BranchName})");
 
-            var commitList = string.Join("\n",
-                repo.UnpushedMessages.Take(10));
+            if (repo.UnpushedCount > 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine("Unpushed commits:");
+                foreach (var msg in repo.UnpushedMessages.Take(10))
+                    sb.AppendLine($"  {msg}");
+            }
 
-            var prompt =
-                $"""
-                You are summarising the state of a Git repository for a developer's daily report.
-                Repository: {repo.RepoName} (branch: {repo.BranchName})
-                Uncommitted files ({repo.UncommittedCount}): {fileList}
-                Unpushed commits ({repo.UnpushedCount}): {commitList}
-                Summarise what work is in progress or waiting to be pushed in 1–3 plain English sentences. Be specific about what the work appears to involve.
-                """;
+            if (repo.UncommittedDiff is { } diff)
+            {
+                sb.AppendLine();
+                sb.AppendLine("Uncommitted changes (unified diff):");
+                sb.AppendLine("```");
+                sb.AppendLine(diff);
+                sb.AppendLine("```");
+            }
+            else if (repo.UncommittedCount > 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine("Uncommitted files:");
+                foreach (var f in repo.UncommittedEntries.Take(20))
+                    sb.AppendLine($"  {f}");
+            }
+
+            if (repo.UntrackedSnippets.Count > 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine("New (untracked) file contents:");
+                foreach (var (path, snippet) in repo.UntrackedSnippets)
+                {
+                    sb.AppendLine($"  {path}:");
+                    sb.AppendLine("  ```");
+                    sb.AppendLine($"  {snippet.ReplaceLineEndings("\n  ")}");
+                    sb.AppendLine("  ```");
+                }
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("In 1–3 sentences, describe what work is in progress. Focus on the intent — what feature, fix, or task is being worked on. Do not restate file counts or commit counts; those are already shown in the report.");
 
             var requestBody = new
             {
                 model      = Model,
                 max_tokens = MaxTokens,
-                messages   = new[] { new { role = "user", content = prompt } }
+                system     = "You are a developer assistant reading Git repository state. Infer the purpose and intent of the work from the diff content and commit messages. Be specific and concise. Never begin with \"The developer is\" or restate facts already in the report.",
+                messages   = new[] { new { role = "user", content = sb.ToString() } }
             };
 
             var json = JsonSerializer.Serialize(requestBody);
