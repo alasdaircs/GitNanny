@@ -2,6 +2,7 @@
   <Folder Name="/_root/">
     <File Path=".gitignore" />
     <File Path="CLAUDE.md" />
+    <File Path="GitNanny-ScheduledTask.xml" />
   </Folder>
   <Folder Name="/_root/config/">
     <File Path="config/appsettings.json" />
