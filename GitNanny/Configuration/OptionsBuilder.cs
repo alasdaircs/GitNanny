@@ -8,7 +8,8 @@ static class OptionsBuilder
     {
         var config = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: false)
+            .AddJsonFile( "appsettings.json", optional: true )
+            .AddJsonFile( "..\\config\\appsettings.json", optional: true )
             .AddEnvironmentVariables()
             .Build();
 
