@@ -1,8 +1,8 @@
 using System.Text;
 using System.Text.Json;
-using GitReport.Scanning;
+using GitNanny.Scanning;
 
-namespace GitReport.Ai;
+namespace GitNanny.Ai;
 
 static class ClaudeSummariser
 {

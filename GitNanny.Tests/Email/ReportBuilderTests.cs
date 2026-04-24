@@ -1,9 +1,9 @@
-using GitReport.Email;
-using GitReport.Scanning;
+using GitNanny.Email;
+using GitNanny.Scanning;
 using MimeKit;
 using Xunit;
 
-namespace GitReport.Tests.Email;
+namespace GitNanny.Tests.Email;
 
 public class ReportBuilderTests
 {

@@ -22,21 +22,21 @@ jobs:
 
       - name: Restore
         run: |
-          dotnet restore GitReport.slnx
-          dotnet restore GitReport/GitReport.csproj -r win-x64
+          dotnet restore GitNanny.slnx
+          dotnet restore GitNanny/GitNanny.csproj -r win-x64
 
       - name: Build
-        run: dotnet build GitReport.slnx --no-restore -c Release
+        run: dotnet build GitNanny.slnx --no-restore -c Release
 
       - name: Test
-        run: dotnet test GitReport.slnx --no-restore --no-build -c Release
+        run: dotnet test GitNanny.slnx --no-restore --no-build -c Release
 
       - name: Publish (win-x64 self-contained)
-        run: dotnet publish GitReport/GitReport.csproj -r win-x64 --self-contained -c Release --no-restore -o publish/
+        run: dotnet publish GitNanny/GitNanny.csproj -r win-x64 --self-contained -c Release --no-restore -o publish/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: GitReport-win-x64
+          name: GitNanny-win-x64
           path: publish/
           if-no-files-found: error

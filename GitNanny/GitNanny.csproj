@@ -5,8 +5,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>GitReport</AssemblyName>
-    <RootNamespace>GitReport</RootNamespace>
+    <AssemblyName>GitNanny</AssemblyName>
+    <RootNamespace>GitNanny</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,7 +25,7 @@
 
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>GitReport.Tests</_Parameter1>
+      <_Parameter1>GitNanny.Tests</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
 

@@ -1,7 +1,7 @@
-using GitReport.Scanning;
+using GitNanny.Scanning;
 using LibGit2Sharp;
 
-namespace GitReport.Git;
+namespace GitNanny.Git;
 
 static class GitInspector
 {

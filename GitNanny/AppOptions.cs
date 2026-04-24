@@ -1,4 +1,4 @@
-namespace GitReport;
+namespace GitNanny;
 
 record AppOptions
 {

@@ -5,13 +5,13 @@ using Microsoft.Graph.Me.SendMail;
 using Microsoft.Graph.Models;
 using MimeKit;
 
-namespace GitReport.Email;
+namespace GitNanny.Email;
 
 static class GraphSender
 {
     private static readonly string AuthRecordPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "GitReport", "auth_record.json");
+        "GitNanny", "auth_record.json");
 
     public static async Task SendAsync(MimeMessage mimeMessage, string clientId)
     {
@@ -67,7 +67,7 @@ static class GraphSender
             AuthenticationRecord         = authRecord,
             TokenCachePersistenceOptions = new TokenCachePersistenceOptions
             {
-                Name                        = "GitReport",
+                Name                        = "GitNanny",
                 UnsafeAllowUnencryptedStorage = false
             },
             RedirectUri = new Uri("http://localhost")

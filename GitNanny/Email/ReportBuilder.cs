@@ -1,9 +1,9 @@
-using GitReport.Scanning;
+using GitNanny.Scanning;
 using Markdig;
 using MimeKit;
 using System.Text;
 
-namespace GitReport.Email;
+namespace GitNanny.Email;
 
 static class ReportBuilder
 {

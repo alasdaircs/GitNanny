@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: nuget
-    directory: /GitReport
+    directory: /GitNanny
     schedule:
       interval: weekly
     open-pull-requests-limit: 5

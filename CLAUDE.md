@@ -1,4 +1,4 @@
-# GitReport — implementation brief for Claude Code
+# GitNanny — implementation brief for Claude Code
 
 ## What this is
 
@@ -34,10 +34,10 @@ library projects — this tool is small enough that logical folders within one p
 are sufficient.
 
 ```
-GitReport/
-  GitReport.sln
-  GitReport/
-    GitReport.csproj
+GitNanny/
+  GitNanny.sln
+  GitNanny/
+    GitNanny.csproj
     Program.cs
     AppOptions.cs
     Scanning/
@@ -234,7 +234,7 @@ Structure:
 Auth:
 - Use `Azure.Identity.InteractiveBrowserCredential` with a persistent MSAL token
   cache stored in the user profile directory (DPAPI-encrypted on Windows).
-- Token cache path: `%APPDATA%\GitReport\msal_cache.bin`.
+- Token cache path: `%APPDATA%\GitNanny\msal_cache.bin`.
 - On first run the browser opens for sign-in. Subsequent runs are silent.
 - Required scope: `Mail.Send` (delegated).
 - `AzureClientId` from `AppOptions` is the Entra app registration client ID.

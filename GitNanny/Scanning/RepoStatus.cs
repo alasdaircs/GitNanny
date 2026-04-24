@@ -1,4 +1,4 @@
-namespace GitReport.Scanning;
+namespace GitNanny.Scanning;
 
 record RepoStatus
 {

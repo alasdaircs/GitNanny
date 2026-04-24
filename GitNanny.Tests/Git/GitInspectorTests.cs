@@ -1,8 +1,8 @@
-using GitReport.Git;
+using GitNanny.Git;
 using LibGit2Sharp;
 using Xunit;
 
-namespace GitReport.Tests.Git;
+namespace GitNanny.Tests.Git;
 
 public sealed class GitInspectorTests : IDisposable
 {

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.FileSystemGlobbing;
 
-namespace GitReport.Scanning;
+namespace GitNanny.Scanning;
 
 static class RepoScanner
 {

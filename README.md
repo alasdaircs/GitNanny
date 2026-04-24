@@ -46,16 +46,16 @@ git clone https://github.com/alasdaircs/GitNanny.git
 cd GitNanny
 
 # Publish a self-contained Windows exe
-dotnet publish GitReport/GitReport.csproj -r win-x64 --self-contained -c Release -o publish/
+dotnet publish GitNanny/GitNanny.csproj -r win-x64 --self-contained -c Release -o publish/
 ```
 
-The output in `publish/` is a single `GitReport.exe` with no runtime dependency.
+The output in `publish/` is a single `GitNanny.exe` with no runtime dependency.
 
 ---
 
 ## Configuration
 
-Edit `GitReport/appsettings.json` before publishing (or alongside the exe):
+Edit `GitNanny/appsettings.json` before publishing (or alongside the exe):
 
 ```json
 {
@@ -79,7 +79,7 @@ Set the Claude API key as an environment variable (do not commit it):
 ## Usage
 
 ```
-GitReport.exe [options]
+GitNanny.exe [options]
 
 Options:
   --scan-root <path>    Override scan roots (repeatable; replaces config value)
@@ -92,18 +92,18 @@ Options:
 
 ### First run
 
-The first execution opens a browser for Microsoft 365 sign-in. After signing in, the authentication record and MSAL token cache are stored under `%APPDATA%\GitReport\`. Subsequent runs are fully silent.
+The first execution opens a browser for Microsoft 365 sign-in. After signing in, the authentication record and MSAL token cache are stored under `%APPDATA%\GitNanny\`. Subsequent runs are fully silent.
 
 ### Dry run (no email, no AI)
 
 ```powershell
-GitReport.exe --dry-run --no-ai --scan-root C:\Dev
+GitNanny.exe --dry-run --no-ai --scan-root C:\Dev
 ```
 
 ### Scheduled task
 
 ```powershell
-schtasks /create /tn "GitNanny" /tr "C:\Tools\GitReport.exe" /sc DAILY /st 07:00 /ru "%USERNAME%"
+schtasks /create /tn "GitNanny" /tr "C:\Tools\GitNanny.exe" /sc DAILY /st 07:00 /ru "%USERNAME%"
 ```
 
 ---
@@ -111,7 +111,7 @@ schtasks /create /tn "GitNanny" /tr "C:\Tools\GitReport.exe" /sc DAILY /st 07:00
 ## Project structure
 
 ```
-GitReport/
+GitNanny/
   Ai/               Claude API summarisation
   Configuration/    appsettings + env + CLI wiring
   Email/            HTML report builder and Microsoft Graph sender

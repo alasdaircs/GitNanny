@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 
-namespace GitReport.Configuration;
+namespace GitNanny.Configuration;
 
 static class OptionsBuilder
 {

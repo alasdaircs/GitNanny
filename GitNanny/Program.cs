@@ -1,9 +1,9 @@
-using GitReport;
-using GitReport.Ai;
-using GitReport.Configuration;
-using GitReport.Email;
-using GitReport.Git;
-using GitReport.Scanning;
+using GitNanny;
+using GitNanny.Ai;
+using GitNanny.Configuration;
+using GitNanny.Email;
+using GitNanny.Git;
+using GitNanny.Scanning;
 using System.CommandLine;
 
 var scanRootOption = new Option<string[]?>("--scan-root")
