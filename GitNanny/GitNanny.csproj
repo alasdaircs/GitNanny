@@ -35,4 +35,17 @@
     </None>
   </ItemGroup>
 
+  <!--
+    Copies config\appsettings.json from the solution root to bin\{Configuration}\config\
+    so the app can find it one level above the TFM output folder at runtime.
+    The Condition makes this a no-op on CI, where the file does not exist.
+  -->
+  <Target Name="CopyLocalConfig" AfterTargets="Build"
+          Condition="Exists('$(MSBuildProjectDirectory)\..\config\appsettings.json')">
+    <MakeDir Directories="$(BaseOutputPath)$(Configuration)\config\" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\..\config\appsettings.json"
+          DestinationFolder="$(BaseOutputPath)$(Configuration)\config\"
+          SkipUnchangedFiles="true" />
+  </Target>
+
 </Project>
